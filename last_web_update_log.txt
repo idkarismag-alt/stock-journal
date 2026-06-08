@@ -1,0 +1,24 @@
+=== TRADE JOURNAL SELECT REPO UPDATE v7.1 ===
+BASE_DIR     = C:\STR\dist\trade_journal
+JOURNAL_FILE = C:\STR\dist\trade_journal\trade_journal_data\journal.json
+CONFIG       = C:\STR\REAL_WEB_REPO_PATH.txt
+
+=== GIT TARGET ===
+
+ERROR
+Traceback (most recent call last):
+  File "C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py", line 564, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py", line 552, in main
+    repo = choose_repo()
+  File "C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py", line 386, in choose_repo
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: Git ����� ���� ������ ��ҵǾ����ϴ�.
+���� �����Ϸ��� C:\STR\REAL_WEB_REPO_PATH.txt ���Ͽ� ���� Git ����� ���� ��θ� ��������.
+
+
+C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py:6: SyntaxWarning: invalid escape sequence '\S'
+  C:\STR\dist\trade_journal\trade_journal_data\journal.json
