@@ -250,6 +250,38 @@
         }
       }
     },
+    "2026-04-15": {
+      "daily_summary": "addsf",
+      "tickers": {
+        "ㅂㅂ": {
+          "category": "미분류",
+          "result": "미정",
+          "pnl": "",
+          "summary": "",
+          "memo": "",
+          "slot_images": {
+            "일봉": [],
+            "분봉": []
+          }
+        }
+      }
+    },
+    "2026-04-10": {
+      "daily_summary": "addsf",
+      "tickers": {
+        "ㅂㅂ": {
+          "category": "미분류",
+          "result": "미정",
+          "pnl": "",
+          "summary": "",
+          "memo": "",
+          "slot_images": {
+            "일봉": [],
+            "분봉": []
+          }
+        }
+      }
+    },
     "2026-04-20": {
       "daily_summary": "",
       "tickers": {
@@ -518,6 +550,10 @@
         }
       }
     },
+    "2026-04-02": {
+      "daily_summary": "",
+      "tickers": {}
+    },
     "2026-04-22": {
       "daily_summary": "",
       "tickers": {
@@ -673,6 +709,10 @@
         }
       }
     },
+    "2026-04-24": {
+      "daily_summary": "",
+      "tickers": {}
+    },
     "2026-04-23": {
       "daily_summary": "시가 스텝1,2,3\n확실한건 스텝3",
       "tickers": {
@@ -773,6 +813,10 @@
         }
       }
     },
+    "2026-06-07": {
+      "daily_summary": "",
+      "tickers": {}
+    },
     "2026-06-05": {
       "daily_summary": "",
       "tickers": {
@@ -855,6 +899,10 @@
           }
         }
       }
+    },
+    "2026-06-08": {
+      "daily_summary": "",
+      "tickers": {}
     }
   }
 }
