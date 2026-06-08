@@ -1,24 +1,49 @@
-=== TRADE JOURNAL SELECT REPO UPDATE v7.1 ===
+=== TRADE JOURNAL SELECT REPO UPDATE v7.2 ===
 BASE_DIR     = C:\STR\dist\trade_journal
 JOURNAL_FILE = C:\STR\dist\trade_journal\trade_journal_data\journal.json
 CONFIG       = C:\STR\REAL_WEB_REPO_PATH.txt
 
 === GIT TARGET ===
+FOUND_REPO = C:\STR\dist\trade_journal\web_publish
+  score   = 240
+  reasons = github remote, index.html, data/journal.json, data folder, web-like folder
+  remote  = origin	https://github.com/idkarismag-alt/stock-journal.git (fetch)
+origin	https://github.com/idkarismag-alt/stock-journal.git (push)
+SELECTED_REPO_AUTO = C:\STR\dist\trade_journal\web_publish
+CONFIG_SAVED = C:\STR\REAL_WEB_REPO_PATH.txt
+=== SOURCE DATA ===
+JOURNAL_FILE = C:\STR\dist\trade_journal\trade_journal_data\journal.json
+dates        = 13
+tickers      = 54
+images       = 104
+june         = 2026-06-04, 2026-06-05
+latest       = 2026-06-05, 2026-06-04, 2026-04-27, 2026-04-23, 2026-04-22, 2026-04-21, 2026-04-20, 2026-04-15, 2026-04-14, 2026-04-13
+=== REPO DATA WRITTEN ===
+REPO      = C:\STR\dist\trade_journal\web_publish
+DATA_FILE = C:\STR\dist\trade_journal\web_publish\data\journal.json
+dates     = 11
+tickers   = 54
+images    = 104
+june      = 2026-06-04, 2026-06-05
+latest    = 2026-06-05, 2026-06-04, 2026-04-27, 2026-04-23, 2026-04-22, 2026-04-21, 2026-04-20, 2026-04-14, 2026-04-13, 2026-04-07
+=== GIT PUSH ===
+REMOTE = origin	https://github.com/idkarismag-alt/stock-journal.git (fetch)
+origin	https://github.com/idkarismag-alt/stock-journal.git (push)
+$ git status --short
+M data/journal.json
+?? data/backups/journal_20260608_115904.json
+$ git add .
+(no output)
+$ git commit -m update stock journal 2026-06-08 11:59:04
+[main 8ac7cd0] update stock journal 2026-06-08 11:59:04
+ 2 files changed, 908 insertions(+), 48 deletions(-)
+ create mode 100644 data/backups/journal_20260608_115904.json
+$ git push
+To https://github.com/idkarismag-alt/stock-journal.git
+   89a4b83..8ac7cd0  main -> main
 
-ERROR
-Traceback (most recent call last):
-  File "C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py", line 564, in <module>
-    raise SystemExit(main())
-                     ~~~~^^
-  File "C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py", line 552, in main
-    repo = choose_repo()
-  File "C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py", line 386, in choose_repo
-    raise RuntimeError(
-    ...<2 lines>...
-    )
-RuntimeError: Git ����� ���� ������ ��ҵǾ����ϴ�.
-���� �����Ϸ��� C:\STR\REAL_WEB_REPO_PATH.txt ���Ͽ� ���� Git ����� ���� ��θ� ��������.
+DONE
+���� Git ����� data\journal.json�� 6�� ������ ���� + git push �Ϸ�
 
-
-C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO.py:6: SyntaxWarning: invalid escape sequence '\S'
+C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO_v72.py:6: SyntaxWarning: invalid escape sequence '\S'
   C:\STR\dist\trade_journal\trade_journal_data\journal.json
