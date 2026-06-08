@@ -385,6 +385,95 @@
       .image-wrap{padding:70px 16px 94px}
       .drawer{width:min(42vw, 340px)}
     }
+
+    /* v7.3 웹 마킹 도구 */
+    .annotation-canvas{
+      position:absolute;
+      z-index:12;
+      display:none;
+      touch-action:none;
+      pointer-events:none;
+    }
+    .stage.annotation-on .annotation-canvas{
+      pointer-events:auto;
+      cursor:crosshair;
+    }
+    .annotation-toolbar{
+      top:calc(var(--safe-top) + 56px);
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:wrap;
+      pointer-events:auto;
+    }
+    .stage.hide-ui .annotation-toolbar{
+      opacity:0;
+      pointer-events:none;
+    }
+    .anno-group{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      padding:5px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+    }
+    .anno-btn{
+      height:34px;
+      min-width:34px;
+      border-radius:11px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      padding:0 9px;
+    }
+    .anno-btn.active{
+      outline:2px solid var(--accent);
+      border-color:rgba(103,173,255,.45);
+      background:rgba(103,173,255,.18);
+    }
+    .anno-color{
+      width:34px;
+      height:34px;
+      border:0;
+      border-radius:10px;
+      background:transparent;
+      padding:0;
+      cursor:pointer;
+    }
+    .anno-size{
+      width:56px;
+      height:34px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      text-align:center;
+      font-weight:900;
+    }
+    .anno-hint{
+      font-size:12px;
+      color:var(--muted);
+      padding:0 6px;
+      white-space:nowrap;
+    }
+    @media (orientation: portrait){
+      .annotation-toolbar{
+        top:calc(var(--safe-top) + 92px);
+        left:8px;
+        right:8px;
+      }
+      .anno-hint{display:none}
+      .anno-btn{font-size:11px; padding:0 7px}
+    }
+
   </style>
 </head>
 <body>
@@ -409,12 +498,28 @@
 
       <div class="image-wrap" id="imageWrap">
         <img id="mainImage" class="main-image" alt="차트 이미지" style="display:none">
+        <canvas id="annotationCanvas" class="annotation-canvas"></canvas>
         <div id="emptyBox" class="empty">등록된 이미지가 없습니다.</div>
       </div>
 
       <div class="image-nav" id="imageNav">
         <button class="btn small" id="prevImage">〈 이미지</button>
         <button class="btn small" id="nextImage">이미지 〉</button>
+      </div>
+
+      <div class="ui annotation-toolbar" id="annotationToolbar">
+        <div class="anno-group">
+          <button class="anno-btn" id="annoToggle">마킹 OFF</button>
+          <button class="anno-btn active" data-anno-mode="pen">펜</button>
+          <button class="anno-btn" data-anno-mode="rect">네모</button>
+          <button class="anno-btn" data-anno-mode="oval">원</button>
+          <button class="anno-btn" data-anno-mode="text">텍스트</button>
+          <input class="anno-color" id="annoColor" type="color" value="#ff3b30" title="색상">
+          <input class="anno-size" id="annoSize" type="number" min="1" max="30" value="4" title="굵기">
+          <button class="anno-btn" id="annoUndo">취소</button>
+          <button class="anno-btn" id="annoClear">전체삭제</button>
+          <span class="anno-hint">브라우저별 자동저장</span>
+        </div>
       </div>
 
       <div class="ui bottombar">
@@ -481,8 +586,24 @@
     let touchStartX = null;
     let touchStartY = null;
 
+    // v7.3 웹 마킹 정보는 원본 이미지가 아니라 브라우저 localStorage에 별도 저장
+    const ANNO_STORAGE_KEY = "tradeJournalWebAnnotations.v1";
+    let annotationEnabled = false;
+    let annotationMode = "pen";
+    let annotationStore = loadAnnotationStore();
+    let currentStroke = null;
+    let shapeStart = null;
+    let previewShape = null;
+    let isDrawingAnnotation = false;
+
     const stage = document.getElementById("stage");
     const mainImage = document.getElementById("mainImage");
+    const imageWrap = document.getElementById("imageWrap");
+    const annotationCanvas = document.getElementById("annotationCanvas");
+    const annoCtx = annotationCanvas.getContext("2d");
+    const annoToggle = document.getElementById("annoToggle");
+    const annoColor = document.getElementById("annoColor");
+    const annoSize = document.getElementById("annoSize");
     const emptyBox = document.getElementById("emptyBox");
     const dateChip = document.getElementById("dateChip");
     const tickerChip = document.getElementById("tickerChip");
@@ -515,6 +636,65 @@
     function textOrEmpty(text, fallback="없음"){
       return (text && String(text).trim()) ? String(text).trim() : fallback;
     }
+    function escapeHtml(value){
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;"
+      }[ch]));
+    }
+    function normalizeTickerEntry(entry){
+      const item = (entry && typeof entry === "object") ? {...entry} : {};
+      item.memo = item.memo || "";
+      item.category = item.category || "미분류";
+      item.result = item.result || "미정";
+      item.pnl = item.pnl || "";
+      item.summary = item.summary || "";
+      item.slot_images = item.slot_images && typeof item.slot_images === "object" ? item.slot_images : {};
+      item.slot_images["일봉"] = Array.isArray(item.slot_images["일봉"]) ? item.slot_images["일봉"] : [];
+      item.slot_images["분봉"] = Array.isArray(item.slot_images["분봉"]) ? item.slot_images["분봉"] : [];
+      if(Array.isArray(item.images) && item.images.length && !item.slot_images["일봉"].length){
+        item.slot_images["일봉"] = item.images.slice();
+      }
+      return item;
+    }
+    function tickerHasRealData(item){
+      if(!item) return false;
+      if((item.memo || "").trim()) return true;
+      if((item.summary || "").trim()) return true;
+      if(String(item.pnl || "").trim()) return true;
+      if(item.slot_images?.["일봉"]?.length) return true;
+      if(item.slot_images?.["분봉"]?.length) return true;
+      return false;
+    }
+    function normalizeJournalData(data){
+      const out = {entries:{}};
+      const entries = data?.entries && typeof data.entries === "object" ? data.entries : {};
+      Object.entries(entries).forEach(([dateKey, raw]) => {
+        const dateEntry = raw && typeof raw === "object" ? raw : {};
+        const tickers = {};
+        if(dateEntry.tickers && typeof dateEntry.tickers === "object"){
+          Object.entries(dateEntry.tickers).forEach(([name, item]) => tickers[name] = normalizeTickerEntry(item));
+        }
+        // 구버전/혼합 구조: 날짜 바로 아래의 종목들도 누락 없이 tickers로 합친다.
+        Object.entries(dateEntry).forEach(([key, item]) => {
+          if(key === "daily_summary" || key === "tickers") return;
+          if(item && typeof item === "object" && !Array.isArray(item)){
+            tickers[key] = normalizeTickerEntry({...item, ...(tickers[key] || {})});
+          }
+        });
+        // v7.2: 실제 종목 데이터가 0개인 날짜는 웹 목록에서 제외
+        const realTickers = {};
+        Object.entries(tickers).forEach(([name, item]) => {
+          if(tickerHasRealData(item)) realTickers[name] = item;
+        });
+        if(Object.keys(realTickers).length){
+          out.entries[dateKey] = {
+            daily_summary: typeof dateEntry.daily_summary === "string" ? dateEntry.daily_summary : "",
+            tickers: realTickers
+          };
+        }
+      });
+      return out;
+    }
     function getDateEntry(){ return journal.entries?.[currentDate] || null; }
     function getTickers(){ return getDateEntry()?.tickers || {}; }
     function getTickerEntry(){ return getTickers()?.[currentTicker] || null; }
@@ -544,14 +724,14 @@
 
     function renderDateList(){
       dateList.innerHTML = "";
-      const dates = Object.keys(journal.entries || {}).sort().reverse();
+      const dates = Object.keys(journal.entries || {}).filter(d => Object.keys(journal.entries[d]?.tickers || {}).length > 0).sort().reverse();
       dates.forEach(d => {
         const entry = journal.entries[d] || {};
         const count = Object.keys(entry.tickers || {}).length;
         const btn = document.createElement("button");
         btn.className = "drawer-item" + (d === currentDate ? " active" : "");
         btn.innerHTML = `
-          <div class="drawer-main"><span>${d}</span><span class="badge">${count}개</span></div>
+          <div class="drawer-main"><span>${escapeHtml(d)}</span><span class="badge">${count}개</span></div>
           <div class="drawer-sub">${entry.daily_summary && entry.daily_summary.trim() ? "당일요약 있음" : "당일요약 없음"}</div>
         `;
         btn.onclick = () => {
@@ -605,10 +785,10 @@
         btn.className = "drawer-item" + (name === currentTicker ? " active" : "");
         btn.innerHTML = `
           <div class="drawer-main">
-            <strong>${name}</strong>
-            <span class="badge ${resultClass(item.result || "미정")}">${item.result || "미정"}</span>
+            <strong>${escapeHtml(name)}</strong>
+            <span class="badge ${resultClass(item.result || "미정")}">${escapeHtml(item.result || "미정")}</span>
           </div>
-          <div class="drawer-sub">${item.category || "미분류"} / ${item.pnl || "-"} / ${item.summary || "-"}</div>
+          <div class="drawer-sub">${escapeHtml(item.category || "미분류")} / ${escapeHtml(item.pnl || "-")} / ${escapeHtml(item.summary || "-")}</div>
         `;
         btn.onclick = () => {
           currentTicker = name;
@@ -656,22 +836,263 @@
       memoBox.textContent = textOrEmpty(tickerEntry.memo, "종목 메모 없음");
     }
 
+
+    function loadAnnotationStore(){
+      try{
+        const raw = localStorage.getItem(ANNO_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      }catch(e){
+        return {};
+      }
+    }
+
+    function saveAnnotationStore(){
+      try{
+        localStorage.setItem(ANNO_STORAGE_KEY, JSON.stringify(annotationStore));
+      }catch(e){
+        alert("마킹 저장 실패: 브라우저 저장공간을 확인하세요.");
+      }
+    }
+
+    function getCurrentImageRaw(){
+      const imgs = getImages();
+      if(!imgs.length) return "";
+      return imgs[currentImageIndex] || "";
+    }
+
+    function getAnnotationKey(){
+      const raw = getCurrentImageRaw();
+      if(!raw) return "";
+      // 이미지 파일 경로를 기준으로 저장. journal.json이 다시 올라와도 같은 이미지면 유지된다.
+      return raw.split("?")[0];
+    }
+
+    function getCurrentAnnotations(){
+      const key = getAnnotationKey();
+      if(!key) return [];
+      if(!Array.isArray(annotationStore[key])) annotationStore[key] = [];
+      return annotationStore[key];
+    }
+
+    function setCurrentAnnotations(items){
+      const key = getAnnotationKey();
+      if(!key) return;
+      annotationStore[key] = Array.isArray(items) ? items : [];
+      saveAnnotationStore();
+    }
+
+    function syncAnnotationCanvas(){
+      if(!mainImage || mainImage.style.display === "none"){
+        annotationCanvas.style.display = "none";
+        return;
+      }
+      const imgRect = mainImage.getBoundingClientRect();
+      const wrapRect = imageWrap.getBoundingClientRect();
+      const w = Math.max(1, Math.round(imgRect.width));
+      const h = Math.max(1, Math.round(imgRect.height));
+
+      annotationCanvas.style.left = `${imgRect.left - wrapRect.left}px`;
+      annotationCanvas.style.top = `${imgRect.top - wrapRect.top}px`;
+      annotationCanvas.style.width = `${w}px`;
+      annotationCanvas.style.height = `${h}px`;
+      annotationCanvas.width = w;
+      annotationCanvas.height = h;
+      annotationCanvas.style.display = "block";
+      renderAnnotations();
+    }
+
+    function normPointFromEvent(e){
+      const rect = annotationCanvas.getBoundingClientRect();
+      const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? 0;
+      const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY) ?? 0;
+      const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      return {x, y};
+    }
+
+    function px(p){
+      return {
+        x: p.x * annotationCanvas.width,
+        y: p.y * annotationCanvas.height
+      };
+    }
+
+    function drawAnnotationItem(ctx, item){
+      ctx.save();
+      ctx.strokeStyle = item.color || "#ff3b30";
+      ctx.fillStyle = item.color || "#ff3b30";
+      ctx.lineWidth = Number(item.size || 4);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if(item.type === "pen" && Array.isArray(item.points) && item.points.length){
+        ctx.beginPath();
+        item.points.forEach((p, idx) => {
+          const q = px(p);
+          if(idx === 0) ctx.moveTo(q.x, q.y);
+          else ctx.lineTo(q.x, q.y);
+        });
+        ctx.stroke();
+      }
+
+      if((item.type === "rect" || item.type === "oval") && item.start && item.end){
+        const a = px(item.start);
+        const b = px(item.end);
+        const x = Math.min(a.x, b.x);
+        const y = Math.min(a.y, b.y);
+        const w = Math.abs(b.x - a.x);
+        const h = Math.abs(b.y - a.y);
+
+        if(item.type === "rect"){
+          ctx.strokeRect(x, y, w, h);
+        }else{
+          ctx.beginPath();
+          ctx.ellipse(x + w/2, y + h/2, Math.max(1, w/2), Math.max(1, h/2), 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      if(item.type === "text" && item.pos && item.text){
+        const p = px(item.pos);
+        const size = Math.max(10, Number(item.size || 18) * 4);
+        ctx.font = `900 ${size}px -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif`;
+        ctx.textBaseline = "top";
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(0,0,0,.55)";
+        ctx.strokeText(item.text, p.x, p.y);
+        ctx.fillStyle = item.color || "#ff3b30";
+        ctx.fillText(item.text, p.x, p.y);
+      }
+
+      ctx.restore();
+    }
+
+    function renderAnnotations(){
+      if(!annotationCanvas.width || !annotationCanvas.height) return;
+      annoCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+      getCurrentAnnotations().forEach(item => drawAnnotationItem(annoCtx, item));
+      if(currentStroke) drawAnnotationItem(annoCtx, currentStroke);
+      if(previewShape) drawAnnotationItem(annoCtx, previewShape);
+    }
+
+    function setAnnotationEnabled(value){
+      annotationEnabled = !!value;
+      stage.classList.toggle("annotation-on", annotationEnabled);
+      annoToggle.textContent = annotationEnabled ? "마킹 ON" : "마킹 OFF";
+      annoToggle.classList.toggle("active", annotationEnabled);
+    }
+
+    function setAnnotationMode(mode){
+      annotationMode = mode;
+      document.querySelectorAll("[data-anno-mode]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.annoMode === mode);
+      });
+    }
+
+    function annotationPointerDown(e){
+      if(!annotationEnabled || !getAnnotationKey()) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const p = normPointFromEvent(e);
+      const color = annoColor.value || "#ff3b30";
+      const size = Math.max(1, Math.min(30, Number(annoSize.value || 4)));
+
+      if(annotationMode === "text"){
+        const text = prompt("입력할 텍스트");
+        if(text && text.trim()){
+          const items = getCurrentAnnotations();
+          items.push({type:"text", pos:p, text:text.trim(), color, size});
+          setCurrentAnnotations(items);
+          renderAnnotations();
+        }
+        return;
+      }
+
+      isDrawingAnnotation = true;
+
+      if(annotationMode === "pen"){
+        currentStroke = {type:"pen", points:[p], color, size};
+      }else{
+        shapeStart = p;
+        previewShape = {type:annotationMode, start:p, end:p, color, size};
+      }
+      renderAnnotations();
+    }
+
+    function annotationPointerMove(e){
+      if(!annotationEnabled || !isDrawingAnnotation) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const p = normPointFromEvent(e);
+      if(currentStroke){
+        currentStroke.points.push(p);
+      }
+      if(previewShape && shapeStart){
+        previewShape.end = p;
+      }
+      renderAnnotations();
+    }
+
+    function annotationPointerUp(e){
+      if(!annotationEnabled || !isDrawingAnnotation) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const items = getCurrentAnnotations();
+
+      if(currentStroke && currentStroke.points.length > 1){
+        items.push(currentStroke);
+      }
+      if(previewShape && shapeStart){
+        const dx = Math.abs(previewShape.end.x - previewShape.start.x);
+        const dy = Math.abs(previewShape.end.y - previewShape.start.y);
+        if(dx > 0.005 && dy > 0.005) items.push(previewShape);
+      }
+
+      currentStroke = null;
+      shapeStart = null;
+      previewShape = null;
+      isDrawingAnnotation = false;
+      setCurrentAnnotations(items);
+      renderAnnotations();
+    }
+
+    function undoAnnotation(){
+      const items = getCurrentAnnotations();
+      items.pop();
+      setCurrentAnnotations(items);
+      renderAnnotations();
+    }
+
+    function clearAnnotations(){
+      if(!getAnnotationKey()) return;
+      if(!confirm("현재 이미지의 마킹을 모두 삭제할까요?")) return;
+      setCurrentAnnotations([]);
+      renderAnnotations();
+    }
+
+
     function renderImage(){
       const imgs = getImages();
       clampImageIndex();
 
       if(!imgs.length){
         mainImage.style.display = "none";
+        annotationCanvas.style.display = "none";
         emptyBox.style.display = "block";
         imageCounter.textContent = "0 / 0";
         return;
       }
 
       const src = imgs[currentImageIndex] + (imgs[currentImageIndex].includes("?") ? "&" : "?") + "v=" + CACHE_BUSTER;
+      mainImage.onload = syncAnnotationCanvas;
       mainImage.src = src;
       mainImage.style.display = "block";
       emptyBox.style.display = "none";
       imageCounter.textContent = `${currentImageIndex + 1} / ${imgs.length}`;
+      setTimeout(syncAnnotationCanvas, 80);
     }
 
     function renderAll(){
@@ -763,19 +1184,43 @@
       };
     });
 
-    mainImage.onclick = openLightbox;
+    mainImage.onclick = () => {
+      if(annotationEnabled) return;
+      openLightbox();
+    };
+
+    annoToggle.onclick = () => setAnnotationEnabled(!annotationEnabled);
+    document.querySelectorAll("[data-anno-mode]").forEach(btn => {
+      btn.onclick = () => {
+        setAnnotationEnabled(true);
+        setAnnotationMode(btn.dataset.annoMode);
+      };
+    });
+    document.getElementById("annoUndo").onclick = undoAnnotation;
+    document.getElementById("annoClear").onclick = clearAnnotations;
+    annoColor.onchange = renderAnnotations;
+    annoSize.onchange = renderAnnotations;
+
+    annotationCanvas.addEventListener("pointerdown", annotationPointerDown);
+    annotationCanvas.addEventListener("pointermove", annotationPointerMove);
+    annotationCanvas.addEventListener("pointerup", annotationPointerUp);
+    annotationCanvas.addEventListener("pointercancel", annotationPointerUp);
+    window.addEventListener("resize", () => setTimeout(syncAnnotationCanvas, 80));
+
     document.getElementById("closeLightbox").onclick = closeLightbox;
     lightbox.onclick = (e) => {
       if(e.target === lightbox) closeLightbox();
     };
 
     stage.addEventListener("touchstart", (e) => {
+      if(annotationEnabled && e.target === annotationCanvas) return;
       if(e.touches.length !== 1) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
     }, {passive:true});
 
     stage.addEventListener("touchend", (e) => {
+      if(annotationEnabled && e.target === annotationCanvas) return;
       if(lightbox.classList.contains("show")) return;
       if(touchStartX == null || touchStartY == null) return;
       const dx = e.changedTouches[0].clientX - touchStartX;
@@ -789,10 +1234,13 @@
     }, {passive:true});
 
     fetch("./data/journal.json?v=" + CACHE_BUSTER, {cache:"no-store"})
-      .then(r => r.json())
+      .then(r => {
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
       .then(data => {
-        journal = data || {entries:{}};
-        const dates = Object.keys(journal.entries || {}).sort().reverse();
+        journal = normalizeJournalData(data || {entries:{}});
+        const dates = Object.keys(journal.entries || {}).filter(d => Object.keys(journal.entries[d]?.tickers || {}).length > 0).sort().reverse();
         currentDate = dates.length ? dates[0] : null;
         if(currentDate){
           const names = Object.keys(getTickers()).sort();

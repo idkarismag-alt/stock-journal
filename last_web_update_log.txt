@@ -4,13 +4,7 @@ JOURNAL_FILE = C:\STR\dist\trade_journal\trade_journal_data\journal.json
 CONFIG       = C:\STR\REAL_WEB_REPO_PATH.txt
 
 === GIT TARGET ===
-FOUND_REPO = C:\STR\dist\trade_journal\web_publish
-  score   = 240
-  reasons = github remote, index.html, data/journal.json, data folder, web-like folder
-  remote  = origin	https://github.com/idkarismag-alt/stock-journal.git (fetch)
-origin	https://github.com/idkarismag-alt/stock-journal.git (push)
-SELECTED_REPO_AUTO = C:\STR\dist\trade_journal\web_publish
-CONFIG_SAVED = C:\STR\REAL_WEB_REPO_PATH.txt
+CONFIG_REPO = C:\STR\dist\trade_journal\web_publish
 === SOURCE DATA ===
 JOURNAL_FILE = C:\STR\dist\trade_journal\trade_journal_data\journal.json
 dates        = 13
@@ -30,17 +24,16 @@ latest    = 2026-06-05, 2026-06-04, 2026-04-27, 2026-04-23, 2026-04-22, 2026-04-
 REMOTE = origin	https://github.com/idkarismag-alt/stock-journal.git (fetch)
 origin	https://github.com/idkarismag-alt/stock-journal.git (push)
 $ git status --short
-M data/journal.json
-?? data/backups/journal_20260608_115904.json
+?? data/backups/journal_20260608_120001.json
 $ git add .
 (no output)
-$ git commit -m update stock journal 2026-06-08 11:59:04
-[main 8ac7cd0] update stock journal 2026-06-08 11:59:04
- 2 files changed, 908 insertions(+), 48 deletions(-)
- create mode 100644 data/backups/journal_20260608_115904.json
+$ git commit -m update stock journal 2026-06-08 12:00:01
+[main 9471ca9] update stock journal 2026-06-08 12:00:01
+ 1 file changed, 860 insertions(+)
+ create mode 100644 data/backups/journal_20260608_120001.json
 $ git push
 To https://github.com/idkarismag-alt/stock-journal.git
-   89a4b83..8ac7cd0  main -> main
+   7c12453..9471ca9  main -> main
 
 DONE
 ���� Git ����� data\journal.json�� 6�� ������ ���� + git push �Ϸ�
