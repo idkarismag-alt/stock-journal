@@ -1,4 +1,4 @@
-=== TRADE JOURNAL SELECT REPO UPDATE v7.2 ===
+=== TRADE JOURNAL SELECT REPO UPDATE v7.3 ===
 BASE_DIR     = C:\STR\dist\trade_journal
 JOURNAL_FILE = C:\STR\dist\trade_journal\trade_journal_data\journal.json
 CONFIG       = C:\STR\REAL_WEB_REPO_PATH.txt
@@ -12,6 +12,7 @@ tickers      = 54
 images       = 104
 june         = 2026-06-04, 2026-06-05
 latest       = 2026-06-05, 2026-06-04, 2026-04-27, 2026-04-23, 2026-04-22, 2026-04-21, 2026-04-20, 2026-04-15, 2026-04-14, 2026-04-13
+index.html updated from C:\STR\dist\trade_journal\index.html
 === REPO DATA WRITTEN ===
 REPO      = C:\STR\dist\trade_journal\web_publish
 DATA_FILE = C:\STR\dist\trade_journal\web_publish\data\journal.json
@@ -24,19 +25,19 @@ latest    = 2026-06-05, 2026-06-04, 2026-04-27, 2026-04-23, 2026-04-22, 2026-04-
 REMOTE = origin	https://github.com/idkarismag-alt/stock-journal.git (fetch)
 origin	https://github.com/idkarismag-alt/stock-journal.git (push)
 $ git status --short
-?? data/backups/journal_20260608_120001.json
+?? data/backups/journal_20260608_120637.json
 $ git add .
 (no output)
-$ git commit -m update stock journal 2026-06-08 12:00:01
-[main 9471ca9] update stock journal 2026-06-08 12:00:01
+$ git commit -m update stock journal 2026-06-08 12:06:37
+[main 8aa9c49] update stock journal 2026-06-08 12:06:37
  1 file changed, 860 insertions(+)
- create mode 100644 data/backups/journal_20260608_120001.json
+ create mode 100644 data/backups/journal_20260608_120637.json
 $ git push
 To https://github.com/idkarismag-alt/stock-journal.git
-   7c12453..9471ca9  main -> main
+   86da910..8aa9c49  main -> main
 
 DONE
 ���� Git ����� data\journal.json�� 6�� ������ ���� + git push �Ϸ�
 
-C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO_v72.py:6: SyntaxWarning: invalid escape sequence '\S'
+C:\STR\dist\trade_journal\trade_journal_web_exporter_SELECT_REPO_v73.py:6: SyntaxWarning: invalid escape sequence '\S'
   C:\STR\dist\trade_journal\trade_journal_data\journal.json
